@@ -1,0 +1,324 @@
+-- @path WSBPEL=/PISCModelToBPEL/target/executable.ecore
+-- @path PIServiceComposition=/PISCModelToBPEL/source/PiServiceComposition.ecore
+
+module Transformation;
+create OUT : WSBPEL from IN : PIServiceComposition;
+
+helper def: raiz: PIServiceComposition!CompositionServiceModel = 
+	PIServiceComposition!CompositionServiceModel.allInstances().asSequence().first();
+
+--helper context WSBPEL!TSequence def : isSequenceMain() : Boolean = self.refImmediateComposite().oclIsUndefined();
+
+helper context WSBPEL!TSequence def : getAllActvitys() : OrderedSet(WSBPEL!TActivity) = 
+	self.activity -> iterate( acti; elements : OrderedSet(WSBPEL!TActivity) = 
+		OrderedSet{} |
+		if acti.oclIsTypeOf(WSBPEL!TActivity) then 
+			elements.union(acti.getAllActvitys()) 
+		else 
+			elements.append(acti) 
+		endif
+		)
+	;
+
+helper context WSBPEL!TSequence def : isSequenceMain() : Boolean =
+	self.refImmediateComposite().oclIsUndefined();
+
+
+rule root {
+	from
+		scm: PIServiceComposition!CompositionServiceModel
+	to
+		doc: WSBPEL!DocumentRoot (
+			process <- process_root 
+		),
+		process_root: WSBPEL!TProcess (
+			name <- 'ToPublishMusic',
+			targetNamespace <- 'http://example.com/ws-bp/topublishmusic',
+			queryLanguage <- 'urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0',
+			expressionLanguage <- 'urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0',
+			suppressJoinFailure <- 'yes',
+			exitOnStandardFault <- 'yes',
+			extensions <- ext,
+			import <- imp,
+			partnerLinks <- plks,
+			messageExchanges <- mse,
+			variables <- variaveis,
+			correlationSets <- cosets,
+			faultHandlers <- fh,
+			eventHandlers <- eh,
+			sequence <- seq 
+			
+		),
+		plks:WSBPEL!TPartnerLinks (
+			partnerLink <- scm.partition
+		),
+		variaveis:WSBPEL!TVariables(
+			variable <- scm.vars
+		),
+		imp:WSBPEL!TImport(
+			--import <- scm.compositionPolices
+		),
+		seq:WSBPEL!TSequence(
+			--activity <- scm.activities 
+		),
+		ext:WSBPEL!TExtensions(
+			-- ext
+		),
+		mse:WSBPEL!TMessageExchanges(
+			--mse
+		),
+		cosets:WSBPEL!TCorrelationSets(
+			
+		),
+		fh:WSBPEL!TFaultHandlers(
+			
+		),
+		eh:WSBPEL!TEventHandlers(
+			
+		)
+--		do{
+--		let r : PiServiceComposition!Policy = input.refImmediateComposite().node->select(h |h.hasStereotype('DSL::ReadSensor')) in r->collect(r | r.hasStereotype('DSL::Aggregation'))->debug('r:'); output.exit.name <- 'teste';
+--		}
+--		do{
+--			scm.partition->debug('teste');
+--		}
+		do {
+			scm.activities -> debug('Activity Sequence');
+			scm.partition -> debug('Activities');
+			scm.vars -> debug('Variables');
+			scm.edges -> debug('Arestas');
+			scm.compositionPolices -> debug('Politicas');
+		}
+}
+
+rule Bussiness2PatnerlinkPatnerRole {
+	from
+		bc : PIServiceComposition!BussinessCollaborator (bc.isExternal = true)
+	to 
+		ptrnl : WSBPEL!TPartnerLink (
+			name <- bc.name,
+			partnerRole <- bc.name
+		)do {
+			bc.debug('Patnerlinks Externo');
+		}
+}
+
+rule Bussiness2PatnerlinkMyRole {
+	from
+		bc : PIServiceComposition!BussinessCollaborator (bc.isExternal = false)
+	to 
+		ptrnl : WSBPEL!TPartnerLink (
+			name <- bc.name,
+			myRole <- bc.name
+		)do {
+			bc.debug('Patnerlinks Interno');
+		}
+}
+
+rule ServiceActivity2Sequence {
+	from
+		sequence : PIServiceComposition!ServiceActivity --(activity.isSequenceMain())
+	to 
+		act : WSBPEL!TSequence (
+			
+		)do {
+			sequence.debug('Sequence');
+		}		
+}
+
+rule ActivityNode2Activity {
+	from
+		activity : PIServiceComposition!ActivityNode
+	to 
+		act : WSBPEL!TActivity (
+		)do {
+			activity.debug('Activity');
+		}		
+}
+
+rule initialNode2ReceiveIn {
+	from
+		initialNode : PIServiceComposition!InitialNode (initialNode = true)
+	to 
+		receiveIn : WSBPEL!TReceive (
+			name <- initialNode.name,
+			targets <- initialNode.outgoing,
+			sources <-  initialNode.incoming
+		)do {
+     		initialNode.debug('ReceiveIn');
+		}	
+}
+
+rule finalNode2ReceiveOut {
+	from
+		finalNode : PIServiceComposition!ActivityFinalNode (finalNode = true)
+	to 
+		receiveOut : WSBPEL!TReceive (
+			name <- finalNode.name,
+			targets <- finalNode.incoming,
+			sources <- finalNode.outgoing
+		)do {
+			finalNode.debug('ReceiveOut');
+		}	
+}
+
+rule forkNode2Flow {
+	from
+		forkNode : PIServiceComposition!ForkNode (forkNode = true)
+	to 
+		flow : WSBPEL!TFlow (
+			name <- forkNode.name,
+			targets <- forkNode.outgoing,
+			sources <-  forkNode.incoming
+		)do {
+			forkNode.debug('Flow');
+		}	
+}
+
+rule joinNOde2IfOrJoin { -- if ou junção
+	from
+		joinNode : PIServiceComposition!JoinNode (joinNode = true)
+	to 
+		If : WSBPEL!TIf (
+			name <- joinNode.name,
+			targets <- joinNode.outgoing,
+			sources <-  joinNode.incoming
+		)do {
+			joinNode.debug('Join Node');
+		}
+}
+
+rule action2Invoke {
+	from
+		action : PIServiceComposition!Action (action = true)
+	to 
+		invoke : WSBPEL!TInvoke (
+			name <- action.name,
+			targets <- action.outgoing,
+			sources <- action.incoming
+		)do {
+			action.debug('Invoke');
+		}	
+		
+}
+
+rule objectFlow2Assign {
+	from
+		objectFlow : PIServiceComposition!ObjectFlow
+	to 
+		assign : WSBPEL!TAssign (
+--			name <- objectFlow.name,
+--			targets <- objectFlow.outgoing,
+--			sources <- objectFlow.incoming
+			
+			
+		)do {
+			objectFlow.debug('Assign OF');
+		}	
+}
+
+
+rule controFlow2Assign {
+	from
+		controFlow : PIServiceComposition!ControlFlow 
+	to 
+		se : WSBPEL!TAssign (
+--			name <- controFlow.name,
+--			targets <- controFlow.outgoing,
+--			sources <- controFlow.incoming
+		)do {
+			controFlow.debug('Assign CF');
+		}
+}
+
+
+
+rule hasVarsTovariable {
+	from
+		variable : PIServiceComposition!Variable
+	to 
+		varsbpel : WSBPEL!TVariable (
+			name <- variable.name
+			--type <- variable.type,
+			--messageType <- variable.type
+--			name="BPELVariableName"
+--			messageType="QName"?
+--			type="QName"?
+		)do {
+			variable.debug('Variables');
+		}
+}
+
+
+--rule import {
+--	from
+--		element : PIServiceComposition!ObjectNode
+--	to 
+--		import : WSBPEL!TImport (
+--			--name <- import.importType
+--		)
+--}
+--
+--
+--rule extensions {
+--	from
+--		element : PIServiceComposition!JoinNode
+--	to 
+--		import : WSBPEL!TExtension (
+--			--name <- import.importType
+--		)
+--}
+--
+--rule messageExchanges {
+--	from
+--		element : PIServiceComposition!ControlNode
+--	to 
+--		import : WSBPEL!TMessageExchange (
+--			--name <- import.importType
+--		)
+--}
+--
+--rule correlationSet {
+--	from
+--		element : PIServiceComposition!ControlFlow
+--	to 
+--		import : WSBPEL!TCorrelationSet (
+--			--name <- import.importType
+--		)
+--}
+----
+--rule faulhandlers {
+--	from
+--		element : PIServiceComposition!MergeNode
+--	to 
+--		import : WSBPEL!TFaultHandlers (
+--			--name <- import.importType
+--		)
+--}
+----
+--rule eventHandelers {
+--	from
+--		element : PIServiceComposition!Rule
+--	to 
+--		import : WSBPEL!TEventHandlers (
+--			--name <- import.importType
+--		)
+--}
+
+--
+--rule controlNodeChoiceToPick {
+--	from
+--		choice: PiServiceComposition!DecisionNode
+--	to
+--		pick: WSBPEL!TPick(
+--		)
+--}
+----
+
+
+
+
+
+
+
+

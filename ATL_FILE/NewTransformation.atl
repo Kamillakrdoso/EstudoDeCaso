@@ -1,0 +1,428 @@
+-- @path WSBPEL=/PI-SCMtoBPEL/target/executable.ecore
+-- @path PIServiceComposition=/PISCModelToBPEL/source/PiServiceComposition.ecore
+
+module NewTransformation;
+create OUT : WSBPEL from IN : PIServiceComposition;
+
+--helper def: regions: Sequence(String) = Sequence[];
+
+helper def: raiz: PIServiceComposition!CompositionServiceModel = 
+	PIServiceComposition!CompositionServiceModel.allInstances().asSequence().first();
+
+--helper context WSBPEL!TSequence def : isSequenceMain() : Boolean = self.refImmediateComposite().oclIsUndefined();
+
+--helper context WSBPEL!TActivity def : getAllActvitiys() : OrderedSet(WSBPEL!TActivity) = OclUndefined
+--	self.activity -> iterate( acti; elements : OrderedSet(WSBPEL!TActivity)) = 
+--		if (acti.oclIsTypeOf(WSBPEL!TActivity)) {
+--			elements.union(acti.getAllActvitiys())
+--		} else {
+--			elements.append(acti)
+--		}
+--;
+
+
+--helper def: existsAttributes (s:Sequence(PiServiceComposition!Policy)): Integer= if s-> size()>0 then 1 else 0 endif;
+
+--helper def: hasVarsSequqnce : Sequence(String) = Sequence{};
+
+
+rule root {
+	from
+		scm: PIServiceComposition!CompositionServiceModel
+	to
+		doc: WSBPEL!DocumentRoot (
+			process <- process_root 
+		),
+		process_root: WSBPEL!TProcess (
+			name <- 'ToPublishMusic',
+			targetNamespace <- 'http://example.com/ws-bp/topublishmusic',
+			queryLanguage <- 'urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0',
+			expressionLanguage <- 'urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0',
+			suppressJoinFailure <- 'yes',
+			exitOnStandardFault <- 'yes',
+			extensions <- ext,
+			import <- imp,
+			partnerLinks <- plks,
+			messageExchanges <- mse,
+			variables <- variaveis,
+			correlationSets <- cosets,
+			faultHandlers <- fh,
+			eventHandlers <- eh,
+			sequence <- act
+			
+		),
+		plks:WSBPEL!TPartnerLinks (
+			partnerLink <- scm.partition
+		),
+		variaveis:WSBPEL!TVariables(
+			--name <- variable.hasVars -> select (e|e.oclIsTypeOf(PiServiceComposition!Policy.))
+				variable <- scm.vars
+		),
+		imp:WSBPEL!TImport(
+			--import <- scm.compositionPolices
+		),
+		act:WSBPEL!TSequence(
+			--act <- scm.activities
+		),
+		ext:WSBPEL!TExtensions(
+			-- ext
+		),
+		mse:WSBPEL!TMessageExchanges(
+			--mse
+		),
+		cosets:WSBPEL!TCorrelationSets(
+			
+		),
+		fh:WSBPEL!TFaultHandlers(
+			
+		),
+		eh:WSBPEL!TEventHandlers(
+			
+		)
+--		do{
+--		let r : PiServiceComposition!Policy = input.refImmediateComposite().node->select(h |h.hasStereotype('DSL::ReadSensor')) in r->collect(r | r.hasStereotype('DSL::Aggregation'))->debug('r:'); output.exit.name <- 'teste';
+--		}
+--		do{
+--			scm.partition->debug('teste');
+--		},
+--		
+--		do {
+--			scm.activities-> debug('teste')
+--		}
+		
+		
+--		), patnerLinks:WSBPEL!TPartnerLinks (
+--			patnerLinks <- Set{plk1}
+--		),plk1: WSBPEL!TPartnerLink(
+--			name <- 'plk1'	
+--		)--,variables: WSBPEL!Variables (
+--			variables <- Set{var1,var2,var3}
+--		), var1: WSBPEL!Variable(
+--				name <-'var1'
+--		), var2: WSBPEL!Variable(
+--				name <-'var2'
+--		), var3: WSBPEL!Variable(
+--				name <-'var3'			
+		--)
+}
+
+rule patnerlink {
+	from
+		input : PIServiceComposition!BussinessCollaborator
+	to 
+		output : WSBPEL!TPartnerLink (
+			name <- input.name
+--			myRole <- input.isExternal
+--			partnerRole <- input.isExternal.oclIsTypeOf(false) 
+		)do {
+			input.debug('Patnerlinks');
+		}
+}
+
+
+rule ServiceActivityToSequence {
+	from
+		activity : PIServiceComposition!ServiceActivity --(activity.isSequenceMain())
+	to 
+		act : WSBPEL!TSequence (
+			name <- activity.name
+		)do {
+			activity.debug('Sequence');
+		}		
+}
+
+rule ActivityNodeToActivity {
+	from
+		activity : PIServiceComposition!ActivityNode
+	to 
+		act : WSBPEL!TActivity (
+			
+		)do {
+			activity.debug('Activity');
+		}		
+}
+
+
+rule hasVarsTovariable {
+	from
+		variable : PIServiceComposition!Variable--(
+		
+		--PIServiceComposition!Policy.allInstances() -> 
+		--select(e | e.hasVars) -> collect(e| e.name)	
+			
+		--variable.hasVars -> collect(e | e.name)
+		--Sequence(Sequence(String)) = variable.hasVars -> collect(e | e.name)
+		--variable.hasVars.asSequence()-> collect(e|e.name)
+		--select(e|e.oclIsTypeOf()(PiServiceComposition!Policy))-> collect(e|e.)	
+		--PiServiceComposition!Policy.allInstances() -> collect(e|e.hasVars)
+		--let name : String = variable.name in variable -> collect(e | e.name)
+		--)
+	to 
+		varsbpel : WSBPEL!TVariable (
+			name <- variable.name
+			--type <- variable.type
+			--name <- variable
+			--name <- thisModule.regions.append(variable.hasVars)
+			--name <- Sequence(Sequence(String)) = variable
+			--Set{variable.hasVars.first().name} 
+			--variable.hasVars.asSet() -> collect(e | e.name)
+			--boperations <- c.feature ->select (e|e.oclIsTypeOf(UML!Method)),
+			--messageType <- variable.hasVars.asSequence().first().type
+--			name="BPELVariableName"
+--			messageType="QName"?
+--			type="QName"?
+--			element="QName"?
+		)do {
+			variable.debug('Variables');
+		}
+}
+
+--helper existsAttributes (s:Sequence(UML!Attribute)):
+--= if s-> size()>0 then 1 else 0 endif;
+--rule Class2JClass{
+--from c: UML!Class
+--to jclass:Java!JClass(
+--jclass.name <- c.name;
+--[...] if (existsAttributes(c.getFeature()) then
+--statement1
+--else
+--statement 2
+--endif;
+--)
+--}
+
+
+--rule import {
+--	from
+--		element : PIServiceComposition!ObjectNode
+--	to 
+--		import : WSBPEL!TImport (
+--			--name <- import.importType
+--		)
+--}
+
+
+--rule extensions {
+--	from
+--		element : PIServiceComposition!JoinNode
+--	to 
+--		import : WSBPEL!TExtension (
+--			--name <- import.importType
+--		)
+--}
+
+--rule messageExchanges {
+--	from
+--		element : PIServiceComposition!ControlNode
+--	to 
+--		import : WSBPEL!TMessageExchange (
+--			--name <- import.importType
+--		)
+--}
+--
+--rule correlationSet {
+--	from
+--		element : PIServiceComposition!ControlFlow
+--	to 
+--		import : WSBPEL!TCorrelationSet (
+--			--name <- import.importType
+--		)
+--}
+--
+--rule faulhandlers {
+--	from
+--		element : PIServiceComposition!MergeNode
+--	to 
+--		import : WSBPEL!TFaultHandlers (
+--			--name <- import.importType
+--		)
+--}
+--
+--rule eventHandelers {
+--	from
+--		element : PIServiceComposition!Rule
+--	to 
+--		import : WSBPEL!TEventHandlers (
+--			--name <- import.importType
+--		)
+--}
+
+--rule bcToPatnerlinks {
+--	from
+--		bc: PiServiceComposition!BussinessCollaborator
+--	to
+--		tpatnerLinks: WSBPEL!TPartnerLinks (
+--			--name <- bc.name
+--		),tprocess: WSBPEL!TProcess (
+--			partnerLinks <- tpatnerLinks
+--		)
+--}
+
+--
+--rule controlNodeToSequence {
+--	from
+--		controlNode: PiServiceComposition!ControlNode
+--	to
+--		sequence: WSBPEL!TSequence(
+--		)
+--}
+--
+--rule controlNodeParallelToFlow {
+--	from
+--		parallel: PiServiceComposition!ForkNode
+--	to
+--		flow: WSBPEL!TFlow(
+--		)
+--}
+--
+--rule controlNodeChoiceToPick {
+--	from
+--		choice: PiServiceComposition!DecisionNode
+--	to
+--		pick: WSBPEL!TPick(
+--		)
+--}
+----
+
+
+
+
+
+
+--rule root {
+--from
+--scm: PiServiceComposition!CompositionServiceModel
+--to
+--doc: WSBPEL!DocumentRoot (
+--process <- process_root
+--),
+--process_root: WSBPEL!TProcess (
+--name <- 'ROOT'
+--variable <- Set{var1,var2,var3}
+--),
+--var1: WSBPEL!Variable(
+--name <-'var1'
+--)
+--var2: WSBPEL!Variable(
+--name <-'var2'
+--)
+--var3: WSBPEL!Variable(
+--name <-'var3'
+--)
+--}
+
+
+--rule process {
+--	from
+--		tprocess: WSBPEL!DocumentRoot
+--	to
+--		process: WSBPEL!TProcess (
+--			variables <- tprocess.variables--,
+--			--patenrLinks <- process_root.partnerLinks
+--		)
+--}
+--
+
+
+
+
+
+--rule process {
+--from
+--in : processoEntrada
+--to
+--out: processoSaida (
+--partnerLinks <- in.partnerLinks,
+--variable <- in.variable
+--)
+--}
+
+--rule root {
+--	from
+--		scm: PiServiceComposition!CompositionServiceModel
+--	to
+--		process_root: WSBPEL!TProcess (
+--		),
+--		doc: WSBPEL!DocumentRoot (
+--			process <- process_root
+--		)
+--}
+
+
+
+
+
+--rule process {
+--from
+--in : processoEntrada
+--to
+--out: processoSaida (
+--partnerLinks <- in.partnerLinks,
+--variable <- in.variable
+--)
+--}
+--rule variavel {
+--from
+--in: variavel (COLOCAR VARIAVEL COMO FOI DEFINIDO NO METAMODEL
+--to
+--out: variavel (
+--name <- in.name,
+--valor <- in.valor
+--)
+--
+--}
+--rule partnerlinks {
+--{...}
+--}
+
+--rule root {
+--from
+--scm: PiServiceComposition!CompositionServiceModel
+--to
+--doc: WSBPEL!DocumentRoot (
+--process <- process_root
+--),
+--process_root: WSBPEL!TProcess (
+--name <- 'ROOT',
+--variable <- vars
+--),
+--vars: WSBPEL!Variables (
+--variable <- set {var1,var2,var3}
+--)
+--var1: WSBPEL!Variable(
+--name <-'var1'
+--)
+--var2: WSBPEL!Variable(
+--name <-'var2'
+--)
+--var3: WSBPEL!Variable(
+--name <-'var3'
+--)
+--}
+
+
+
+
+--rule root {
+--from
+--scm: PiServiceComposition!CompositionServiceModel
+--to
+--doc: WSBPEL!DocumentRoot (
+--process <- process_root
+--),
+--process_root: WSBPEL!TProcess (
+--name <- 'ROOT'
+--variable <- Set{var1,var2,var3}
+--),
+--var1: WSBPEL!Variable(
+--name <-'var1'
+--)
+--var2: WSBPEL!Variable(
+--name <-'var2'
+--)
+--var3: WSBPEL!Variable(
+--name <-'var3'
+--)
+--}
+
+

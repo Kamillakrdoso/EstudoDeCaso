@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PiServiceComposition:CompositionServiceModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:PiServiceComposition="http://PiServiceComposition">
+  <partition xsi:type="PiServiceComposition:BussinessCollaborator" name="Application" edges="//@edges.0 //@edges.2 //@edges.3 //@edges.4 //@edges.5 //@edges.6 //@edges.7 //@edges.8 //@edges.9 //@edges.10 //@edges.11 //@edges.12" nodes="//@activities.2/@action.0 //@activities.0/@action.0 //@activities.2/@node.1"/>
+  <partition xsi:type="PiServiceComposition:BussinessCollaborator" name="Spotify" isExternal="true" edges="//@edges.1 //@edges.13" nodes="//@activities.0/@action.1 //@activities.2/@action.2"/>
+  <partition xsi:type="PiServiceComposition:BussinessCollaborator" name="Twitter" isExternal="true" edges="//@edges.17" nodes="//@activities.1/@action.0 //@activities.1/@action.3"/>
+  <partition xsi:type="PiServiceComposition:BussinessCollaborator" name="Facebook" isExternal="true" edges="//@edges.16" nodes="//@activities.1/@action.1 //@activities.1/@action.2"/>
+  <partition xsi:type="PiServiceComposition:BussinessCollaborator" name="Bank" isExternal="true" edges="//@edges.14 //@edges.15" nodes="//@activities.0/@action.2 //@activities.0/@action.3"/>
+  <activities xsi:type="PiServiceComposition:ServiceActivity" name="To Download Music">
+    <action name="buy music" incoming="//@edges.3" outgoing="//@edges.4 //@edges.14 //@edges.15" partition="//@partition.0" type="AOP"/>
+    <action name="download music" incoming="//@edges.4" outgoing="//@edges.5" partition="//@partition.1"/>
+    <action name="pay" activity="//@activities.0" incoming="//@edges.14" redefinedElement="//@activities.0/@action.0" partition="//@partition.4"/>
+    <action name="send confirmation" activity="//@activities.0" incoming="//@edges.15" redefinedElement="//@activities.0/@action.0" partition="//@partition.4"/>
+  </activities>
+  <activities xsi:type="PiServiceComposition:ServiceActivity" name="To Publish Music">
+    <node xsi:type="PiServiceComposition:ActivityFinalNode" name="final_node" activity="//@activities.1" incoming="//@edges.9 //@edges.10 //@edges.12"/>
+    <node xsi:type="PiServiceComposition:ForkNode" name="fn2" activity="//@activities.1" incoming="//@edges.7" outgoing="//@edges.8 //@edges.10 //@edges.11"/>
+    <action name="publish twitter" activity="//@activities.1" incoming="//@edges.8" outgoing="//@edges.9 //@edges.17" partition="//@partition.2" type="AOP"/>
+    <action name="publish facebook" activity="//@activities.1" incoming="//@edges.11" outgoing="//@edges.12 //@edges.16" partition="//@partition.3" type="AOP"/>
+    <action name="update status" activity="//@activities.1" incoming="//@edges.16" redefinedElement="//@activities.1/@action.1" partition="//@partition.3"/>
+    <action name="publish message" activity="//@activities.1" incoming="//@edges.17" redefinedElement="//@activities.1/@action.0" partition="//@partition.2"/>
+  </activities>
+  <activities xsi:type="PiServiceComposition:ServiceActivity" name="To Search Music">
+    <node xsi:type="PiServiceComposition:InitialNode" name="initial_node" outgoing="//@edges.0"/>
+    <node xsi:type="PiServiceComposition:ForkNode" name="fn1" incoming="//@edges.2" outgoing="//@edges.3 //@edges.6" partition="//@partition.0"/>
+    <action name="search music" activity="//@activities.2" incoming="//@edges.0" outgoing="//@edges.1 //@edges.13" partition="//@partition.0" type="AOP"/>
+    <action name="select music" activity="//@activities.0" incoming="//@edges.1" outgoing="//@edges.2" type="AOP"/>
+    <action name="music search" activity="//@activities.2" incoming="//@edges.13" redefinedElement="//@activities.2/@action.0" partition="//@partition.1"/>
+  </activities>
+  <activities xsi:type="PiServiceComposition:ServiceActivity" name="To Listen Music">
+    <action name="listen music" incoming="//@edges.5 //@edges.6" outgoing="//@edges.7" type="AOP"/>
+    <action name="listen song"/>
+  </activities>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf1" target="//@activities.2/@action.0" source="//@activities.2/@node.0" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ObjectFlow" name="of1" target="//@activities.2/@action.1" source="//@activities.2/@action.0" partition="//@partition.1"/>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf2" target="//@activities.2/@node.1" source="//@activities.2/@action.1" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf3" target="//@activities.0/@action.0" source="//@activities.2/@node.1" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ObjectFlow" name="of2" target="//@activities.0/@action.1" source="//@activities.0/@action.0" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ObjectFlow" name="of3" target="//@activities.3/@action.0" source="//@activities.0/@action.1" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf4" target="//@activities.3/@action.0" source="//@activities.2/@node.1" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf5" target="//@activities.1/@node.1" source="//@activities.3/@action.0" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf6" target="//@activities.1/@action.0" source="//@activities.1/@node.1" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf7" target="//@activities.1/@node.0" source="//@activities.1/@action.0" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf8" target="//@activities.1/@node.0" source="//@activities.1/@node.1" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf9" target="//@activities.1/@action.1" source="//@activities.1/@node.1" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ControlFlow" name="cf10" target="//@activities.1/@node.0" source="//@activities.1/@action.1" partition="//@partition.0"/>
+  <edges xsi:type="PiServiceComposition:ObjectFlow" name="of4" target="//@activities.2/@action.2" source="//@activities.2/@action.0" partition="//@partition.1"/>
+  <edges xsi:type="PiServiceComposition:ObjectFlow" name="of5" target="//@activities.0/@action.2" source="//@activities.0/@action.0" partition="//@partition.4"/>
+  <edges xsi:type="PiServiceComposition:ObjectFlow" name="of6" target="//@activities.0/@action.3" source="//@activities.0/@action.0" partition="//@partition.4"/>
+  <edges xsi:type="PiServiceComposition:ObjectFlow" name="of7" target="//@activities.1/@action.2" source="//@activities.1/@action.1" partition="//@partition.3"/>
+  <edges xsi:type="PiServiceComposition:ObjectFlow" name="of8" target="//@activities.1/@action.3" source="//@activities.1/@action.0" partition="//@partition.2"/>
+  <compositionPolices hasVars="//@vars.2 //@vars.4"/>
+  <vars name="UserName" type="String"/>
+  <vars name="CardNumber" type="integer"/>
+  <vars name="Id" type="integer"/>
+  <vars name="Value" type="integer"/>
+  <vars name="PassWord" type="integer"/>
+</PiServiceComposition:CompositionServiceModel>

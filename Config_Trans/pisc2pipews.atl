@@ -1,0 +1,280 @@
+-- @path pisc=/Transformation-piServiceComposition2piPEWS/source/PiServiceComposition.ecore
+-- @path pipews=/Transformation-piServiceComposition2piPEWS/target/PiPEWS.ecore
+
+module pisc2pipews;
+create OUT : pipews from IN : pisc;
+
+-- HELPER VARIABES
+helper def: aux : Integer = 1;
+
+--BEGIN DOC
+--#DESCRIPTION
+-- Determina si un Service Activity tiene un nodo Final. De ese modo se determina que es el SA Final 
+--END DOC
+helper context pisc!ServiceActivity def : isSAFinal() : Boolean = 
+	self.node -> exists(e | e.oclIsTypeOf(pisc!ActivityFinalNode));
+
+--BEGIN DOC
+--#DESCRIPTION
+-- Determina si un Service Activity tiene un nodo Inicial. De ese modo se determina que es el SA Inicial 
+--END DOC
+helper context pisc!ServiceActivity def : isSAInitial() : Boolean = 
+	self.node -> exists(e | e.oclIsTypeOf(pisc!InitialNode));
+
+--BEGIN DOC
+--#DESCRIPTION
+-- Determina si un Service Activity tiene un Fork node.
+--END DOC
+helper context pisc!ServiceActivity def : hasForkNode() : Boolean = 
+	self.node -> exists(e | e.oclIsTypeOf(pisc!ForkNode));
+
+--BEGIN DOC
+--#DESCRIPTION
+-- Determina si un Service Activity tiene un Decision node.
+--END DOC
+helper context pisc!ServiceActivity def : hasDecisionNode() : Boolean = 
+	self.node -> exists(e | e.oclIsTypeOf(pisc!DecisionNode));
+
+
+
+--BEGIN DOC
+--#DESCRIPTION
+-- Obtem o elemento raiz de origem.
+-- Se utiliza quando o elemento de origem não tem un atributo do tipo raiz, mas o elemento destino o tem.
+--END DOC
+helper def : raiz : pisc!CompositionServiceModel = pisc!CompositionServiceModel.allInstances()->asSequence()->first();
+
+--BEGIN DOC
+--#DESCRIPTION
+-- Obtem o elemento Police.
+-- Se utiliza quando o elemento de origem não tem un atributo do tipo police, mas o elemento destino o tem.
+--END DOC
+helper def : policies : pisc!Policy = pisc!Policy.allInstances()->asSequence();
+
+helper context pipews!Rule def : isPRE() : Boolean = 
+	self.oclIsTypeOf(piPEWS!Precondition);
+
+
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE Root
+-- Transformação entre os elementos raiz CompositionServiceModel para os elementos, PEWS-SPEC e Path.
+--END DOC
+rule root{
+	from sCM : pisc!CompositionServiceModel
+	to path: pipews!Path (
+			
+		),
+		pews : pipews!PEWSCTSpec (
+			name <- 'newModelPEWSpecName',
+			has <- path,
+			contains <- sCM.partition,
+			defines <- 	thisModule.policies
+		)
+}
+
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE Service
+-- Transformação entre o elemento uma Action em uma Operation em PEWS, sempre que o tipo da Action for do tipo #WS, pois
+-- as Action do tipo #AOP são da composição do nível mais abstrata e não são serviços reais
+--END DOC
+rule service{	
+	from		
+		sa: pisc!Action(
+			sa.type = #WS	
+		)
+	to
+		ap: pipews!Operation (
+			alias <- sa.name,
+			name <- sa.name,
+			isDefinedIn <- sa.partition,
+			policy <- sa.definePolices,
+			path <- thisModule.raiz
+		)
+}
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE ServiceComposition
+-- Transformação entre o elemento uma ServiceActivity em ServiceComposition em PEWS, sempre que houver mais de 2 Action do elemento de origem.
+--END DOC
+rule serviceComposition {	
+	from		
+		sa: pisc!ServiceActivity (
+			sa.action->size() > 2
+		)
+	to	
+		servComp: pipews!CompositeOperation (
+			name <- sa.name,
+			path <- thisModule.raiz,
+			composeComposite <- sa.action
+		)
+		
+}
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE Business
+-- Transformação entre o elemento uma BusinessCollaborator em Namespace em PEWS.
+-- A restrição da transformação é ue o atributo 'isExternal' de BusinessCollaborator deve ser 'true' para que este
+-- seja definido com um namaspace em PEWS, pois representa um serviço real. Quando o atributo é 'false', significa que este
+-- BusinessCollaborator tem uma representação abstrata da composição.
+--END DOC
+rule business{
+	from
+		bC: pisc!BussinessCollaborator(
+			bC.isExternal = true	
+		)
+	to		
+		ns: pipews!Namespace (
+			name <- bC.name
+--			WDSLAdress <- 'http://adress.com/' + bC.name + '.wsdl'
+		)
+}
+
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE RuleTime
+-- Transformação entre o elemento uma Rule em TimeRestriction em PEWS.
+-- A restrição da transformação é ue o atributo 'r.event' de Rule deve ser '#Time' para que este
+-- seja definido com uma regra do tipo 'TimeRestriction' em PEWS. PAra isso, são criados objeto do tipo
+-- Action, Event e Contidion em PEWS e depois relacionados com o elemento TimeRestriction.
+-- Action, Event e Contidion são regados a partir dos atributos action, eventType e condition de Rule (piServiceComposition Model).
+-- Por fim, o elemento TimeRestriction gerado da transformação 'Rule'--> 'TimeRestriction' é associado a uma 'Policy' --> 'APolicy'.
+--END DOC
+rule ruleTime{
+	from
+		r: pisc!Rule (
+			r.event = #TIME)
+	to
+		rAct: pipews!Action(
+			act <- r.action
+		),
+		rEvt: pipews!Event( 
+			type <- #Activity
+		),
+		rCond: pipews!Condition(
+			expression <- r.condition
+		),
+		rRule: pipews!TimeRestriction(			
+			calls <- rAct,
+			defines <- rCond,
+			hasSome <- rEvt,
+			policy <- r.policy
+		)
+}
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE RulePre
+-- Transformação entre o elemento uma Rule em Precondition em PEWS.
+-- A restrição da transformação é ue o atributo 'r.event' de Rule deve ser '#PRE' para que este
+-- seja definido com uma regra do tipo 'Precondition' em PEWS. Para isso, são criados objeto do tipo
+-- Action, Event e Contidion em PEWS e depois relacionados com o elemento Precondition.
+-- Action, Event e Contidion são regados a partir dos atributos action, eventType e condition de Rule (piServiceComposition Model).
+-- Por fim, o elemento Precondition gerado da transformação 'Rule'--> 'Precondition' é associado a uma 'Policy' --> 'APolicy'.
+--END DOC
+rule rulePre{
+	from
+		r: pisc!Rule (
+			r.event = #PRE)
+	to
+		rAct: pipews!Action(
+			act <- r.action
+		),
+		rEvt: pipews!Event( 
+			type <- #ActivityPrepered
+		),
+		rCond: pipews!Condition(
+			expression <- r.condition
+		),
+		rRule: pipews!Precondition(			
+			calls <- rAct,
+			defines <- rCond,
+			hasSome <- rEvt,
+			policy <- r.policy
+		)
+}
+
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE RulePost
+-- Transformação entre o elemento uma Rule em Postcondition em PEWS.
+-- A restrição da transformação é ue o atributo 'r.event' de Rule deve ser '#POST' para que este
+-- seja definido com uma regra do tipo 'Postcondition' em PEWS. Para isso, são criados objeto do tipo
+-- Action, Event e Contidion em PEWS e depois relacionados com o elemento Postcondition.
+-- Action, Event e Contidion são regados a partir dos atributos action, eventType e condition de Rule (piServiceComposition Model).
+-- Por fim, o elemento Postcondition gerado da transformação 'Rule'--> 'Postcondition' é associado a uma 'Policy' --> 'APolicy'.
+--END DOC
+rule rulePost{
+	from
+		r: pisc!Rule (
+			r.event = #POST	)
+	to
+		rAct: pipews!Action(
+			act <- r.action
+		),
+		rEvt: pipews!Event( 
+			type <- #TermActivity
+		),
+		rCond: pipews!Condition(
+			expression <- r.condition
+		),
+		rRule: pipews!Postcondition(			
+			calls <- rAct,
+			defines <- rCond,
+			hasSome <- rEvt,
+			policy <- r.policy
+		)
+}
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE Variable
+-- Transformação entre Variaveis, esta transformação é um direta através dos elementos Variable dos modelos de origem e destino.
+--END DOC
+rule variable	 {
+	from
+		v: pisc!Variable 
+	to
+		vp: pipews!Variable (
+			name <- v.name
+--			valeu <- v.type
+		)
+}
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE Policy
+-- Transformação entre Politicas, esta transformação é um direta através dos elementos Policy e Apolicy dos modelos de origem e destino.
+--END DOC
+rule Policy{
+	from
+		p: pisc!Policy
+	to
+		ap: pipews!APolicy (
+			name <- p.name,
+			has <- p.hasVars
+		)
+}
+
+--BEGIN DOC
+--#DESCRIPTION
+-- RULE Operator
+-- 
+--END DOC
+rule Operator{
+	from
+		contNode: pisc!ControlNode
+	to
+		pp: pipews!Operator (
+			nameOperator <- #SEQUENCE,
+			path <- thisModule.raiz
+			
+		)
+}
